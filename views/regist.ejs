@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+<head>
+	<meta charset="UTF-8">
+	<title>注册</title>
+	<link rel="stylesheet" type="text/css" href="css/regist.css">
+	<script src="http://libs.baidu.com/jquery/1.8.3/jquery.min.js"></script>
+</head>
+<body class="body">
+	<div class="transform">
+		<div class="box">
+			<form action="">
+				<p class="first"><input   name="name" type="text" placeholder="账号" autocomplete="off">
+				</p>
+				<p class="tipone">不能为空！</p>
+				<p class="second"><input name="password" type="password" placeholder="密码">
+				</p>
+				<p class="tiptwo">不能为空且至少6位！</p>
+				<p class="third"><input name="password2" type="password" placeholder="确认密码">
+				</p>
+				<p class="tipthree">两次输入不一致！</p>
+				<p class="four"><input id="submit" type="button" value="注册"></p>
+			</form>
+		</div>
+		<div class="ok">
+			<p class="time">2</p>
+			<a href="/"><img src="images/ok.png" alt="注册成功"></a>
+			<a href="/"><p class="tip">注册成功！点击返回主页</p></a>
+		</div>
+	</div>
+	<script type="text/javascript">
+		var flag=false;
+		$('form').delegate('input','focus',function(){
+			if($(this).attr('id') == 'submit') return;
+			$(this).removeClass('on');		
+		})
+		$('.first input').blur(function(){
+			var firstvalue=$('.first input').val();
+			if(firstvalue.length == 0){
+				$('.first input').addClass('on');
+				$('.tipone').fadeIn();
+				$('.tipone').html('不能为空！');
+				setTimeout(function(){
+					$('.tipone').fadeOut();
+				},2000)
+				return;
+			}
+			if(! /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(firstvalue)){
+				$('.first input').addClass('on');
+				$('.tipone').fadeIn();
+				$('.tipone').html('只能输入字母、数字、汉子！');
+				setTimeout(function(){
+					$('.tipone').fadeOut();
+				},2000)
+				return;
+			}
+			$.post('doregist2',{
+				'name':$(".first [name]").val()
+			},function(result){
+				if(result == '2'){
+					flag=true;
+					$('.first input').addClass('on');
+					$('.tipone').html('用户名重复！').fadeIn();
+					setTimeout(function(){
+						$('.tipone').fadeOut();
+					},2000)
+				}else{
+					flag=false;
+				}
+			})
+		})
+		$("#submit").click(function(){
+			var secondvalue=$('.second input').val();
+			var thirdvalue=$('.third input').val();
+			
+			if(secondvalue.length < 6){
+				$('.second input').addClass('on');
+				$('.tiptwo').fadeIn();
+				setTimeout(function(){
+					$('.tiptwo').fadeOut();
+				},2000)
+				return;
+			}
+			if(thirdvalue.length == 0){
+				$('.third input').addClass('on');
+				$('.second input').addClass('on');
+				$('.tipthree').fadeIn();
+				setTimeout(function(){
+					$('.tipthree').fadeOut();
+				},2000)
+				return;
+			}
+			if(secondvalue != thirdvalue){
+				$('.second input').addClass('on');
+				$('.third input').addClass('on');
+				$('.tipthree').fadeIn();
+				setTimeout(function(){
+					$('.tipthree').fadeOut();
+				},2000)
+				return;
+			}
+			if(flag){return;}
+			$(this).css({
+				'transition':'none',
+				'box-shadow':'none',
+				'border-bottom': '2px solid #fff'
+			}).animate({
+				'width':"50px",
+				'height':'50px',
+				'border-radius':'50%'
+			},300,function(){
+				$("#submit").css('animation','loadding 1s linear infinite')
+			}).attr('value','');
+			$.post('/doregist',{
+				'name':$(".first [name]").val(),
+				'password':$(".second [name]").val()
+			},function(result){
+				if(result == '1'){
+					$(".box").css('transform','rotateY(-180deg)');
+					$(".ok").css('transform','rotateY(-360deg)');
+					time()
+					return;
+				}
+			})
+		})
+		function time(){
+			var i=5;
+			$('.time').html(i+'秒后自动返回首页')
+			setInterval(function(){
+				i--;
+				$('.time').html(i+'秒后自动返回首页');
+			},1000)
+			setTimeout(function(){
+				window.location.href='/';
+			},i*1000)
+		}
+	</script>
+</body>
+</html>

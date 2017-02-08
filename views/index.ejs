@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>node说说</title>
+	<link rel="stylesheet" type="text/css" href="css/regist.css">
+	<link rel="stylesheet" type="text/css" href="css/jquery.Jcrop.min.css">
+	<script type="text/javascript" src="js/jquery-3.0.0.min.js"></script>
+	<script type="text/javascript" src='js/jquery.Jcrop.min.js'></script>
+	<script type="text/javascript" src='js/jquery.form.js'></script>
+</head>
+<body>
+	<header>
+		<ul class="nav">
+			<li><a href="/">首页</a></li>
+			<% if(login){ %>
+				<li><a href="/my">我的说说</a></li>
+			<% } %>
+		</ul>
+		<% if(!login){ %>
+		<ul class="tip">
+			<li><a href="/login">登录</a></li>
+			<li><a href="/regist">注册</a></li>
+		</ul>
+		<% }else{ %>
+		<div class="people">
+			<div class="avatar">
+				<a class="setavatar" href="javascript:void(0)" onclick="$('#box').fadeIn();" title="设置头像"><img src="/avatar/<%=avatar%>" width="100%"/>	</a>
+			</div>
+			<p><%= username%></p>
+		</div>
+		<div  class="logon"><a href="javascript:void(0)">注销</a></div>
+		<% } %>
+	</header>
+	<div id="box">
+		<div class="aside">
+		<div class='close'></div>
+			<form enctype="multipart/form-data" method="post" id="form">
+				<div class="upfile">
+					<input style="display: none;" id="file" name="img" type="file">
+					<input type="text" class="photoName"  id="imgOne" name="fileName" >
+					<a class="choice" href="javascript:void(0)" onclick="$('input[id=file]').click()">选择文件</a>
+				</div>
+				<div class="cut">
+					<img id="imgpre" height="400px" />
+				</div>
+				<div id="preview">
+					<img id="previewImg"  src=""/>
+				</div>
+				<a href="javascript:void(0)" class="cutButton" onclick="returnwhxy()">确定</a>
+				<script type="text/javascript">
+				/*注销*/
+				$('header .logon a').click(function(){
+					$.get('/logon',function(data){
+						if(data=='1'){
+							window.location.href='/';
+						}else{
+							alert('请登录');
+						}
+					})
+				})
+				/*关闭*/
+				$('.close').click(function(){
+					$('#box').fadeOut();
+				})
+				var jcrop_api,
+					boundx,
+					boundy,
+					w,
+					h,
+					x1,
+					y1,
+					flag=true;
+				/*启用头像剪裁*/
+					$('input[id=file]').change(function(){
+						if(!Button1_onclick()){
+							alert('请选择图片！');
+							return;
+						};
+						$('input[class=photoName]').val( $(this).val() );
+						preImg($(this).attr('id') , 'imgpre');
+						/*预览框*/
+						preImg($(this).attr('id') , 'previewImg');
+						/*如果这个存在那么重新初始化选框*/
+						if(jcrop_api){
+							/*销毁jcrop*/
+							jcrop_api.destroy();
+							/*清空jcrop为img设置的宽高*/
+							$('#imgpre').attr('style','');
+						}
+						$('#imgpre').Jcrop({
+							aspectRatio:1,
+							drawBorders:true,
+							onChange:updatePreview
+						},function(){
+							/*准备使用jcrop api*/
+							jcrop_api = this;
+							/*图片原始大小*/
+							boundx=this.getBounds()[0];
+							boundy=this.getBounds()[1];
+							/*初始化剪裁框*/
+							jcrop_api.animateTo([0, 0, 100, 100]);
+							/*预览框大小,必须等jsrop初始化完毕才能获得图片宽度*/
+							$('#previewImg').width($('#imgpre').width())
+						});
+					})
+					/*验证是否为图片*/
+					function Button1_onclick(){
+					        var txt_bpice=document.getElementById("file");
+					        var b= /\w*(jpg|png|gif|swf|bmp|jpeg)$/;
+					        var t_value=txt_bpice.value.toLowerCase();
+					        var a=b.test(t_value);
+					        return a;
+					}
+					/*实时预览*/
+					function updatePreview(c){
+						if(c.w<=0){return;}
+						var xsize=$('#preview').width();			/*预览框宽度*/
+						var ysize=$('#preview').height();		/*预览框高度*/
+						var rx=xsize/c.w;				/*预览框/选择框宽*/
+						var ry=ysize/c.h;				/*预览框/选择框高*/
+						$('#previewImg').css({				
+							'width': rx*boundx+'px',
+							'height': ry*boundy+'px',
+							'margin-left': '-'+rx*c.x+'px',
+							'margin-top': '-'+ry*c.y+'px'
+						});
+						/*获取剪裁值*/
+						x1=c.x;
+						y1=c.y;
+						/*宽高*/
+						w=c.w;
+						h=c.h;
+					}
+					/*传递到后台*/
+					function returnwhxy(){
+						if(!flag){return;}
+						/*loaading...*/
+						$('.cutButton').html('loadding...');
+						flag=false;
+						if(!Button1_onclick()){
+							alert('请选择图片！');
+							return;
+						};
+						$('#form').ajaxSubmit({
+							url:'/cut',
+							type:'POST',
+							data:{'w':w,'h':h,'x1':x1,'y1':y1,'boundx':boundx,'boundy':boundy},
+							success:function(data){
+								if(data.value == '1'){
+									alert('修改成功');
+									$('#box').fadeOut();
+									$('.setavatar img').attr('src','/avatar/'+data.avatar);
+									$('.publish img').attr('src','/avatar/'+data.avatar);
+								}else if(data.value == '3'){
+									alert('请登录！');
+									$('#box').fadeOut();
+								}else{
+									alert('修改失败');
+								}
+									flag=true;
+									$('.cutButton').html('确定');
+									/*清空数据*/
+									/*文件名*/
+									$('input[class=photoName]').val('');
+									$('#imgpre').removeAttr("src");
+									$('#previewImg').removeAttr("src");
+									if(jcrop_api){
+										/*销毁jcrop*/
+										jcrop_api.destroy();
+										/*清空jcrop为img设置的宽高*/
+										$('#imgpre').attr('style','');
+									}
+							}
+						})
+						
+					}
+					/*在线预览功能*/
+					function getFileUrl(sourceId) { 
+					var url; 
+					if(window.createObjectURL!=undefined){
+						url=window.createObjectURL(sourceId);
+					}else if(window.URL!=undefined){
+						url= window.URL.createObjectURL(sourceId); /*火狐https://developer.mozilla.org/zh-CN/docs/Web/API/URL/createObjectURL*/
+					}else if(window.webkitURL!=undefined){      /*谷歌手机等*/
+						url= window.URL.createObjectURL(sourceId);
+					}
+					return url; 
+					} 
+					function preImg(sourced,targetId){
+						if(!Button1_onclick()){
+							alert('请选择图片！');
+							return;
+						};
+						try{
+							var file=document.getElementById(sourced).files[0]; /*获取文件对象*/
+							var url=getFileUrl(file);
+							var imgPre=document.getElementById(targetId);
+							imgPre.src=url;
+						}catch(e){
+							document.getElementById(sourced).select();
+							document.getElementById(sourced).blur();
+							var imgsrc = document.selection.createRange().text;
+							var localimgid = document.getElementById("imgPre");
+							 try{
+							 localimgid.style.filter="progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=scale)";
+							 localimgid.filters.item("DXImageTransform.Microsoft.AlphaImageLoader").src = imgsrc;
+							 }catch (e)  {
+							 alert("您上传的图片格式不正确，请重新选择!");
+							 return false;
+							 }
+							 document.selection.empty(); 
+						}
+					}
+				</script>
+			</form>
+		</div>
+	</div>
+	<div class="contentmain">
+		<% if(login){ %>
+		<div class="subbox">
+			<div class="publish">
+				<div class="head" onclick="$('#box').fadeIn();"><a href="javascript:void(0)" title="修改头像"><img src="/avatar/<%=avatar%>" width="100%"/></a></div>
+				<div class="article">
+					<div class="prompt" style="display: none;">还能输入<span> </span>字</div>
+					<textarea class="textarea" maxlength="140"></textarea>
+					<div class="put"><a href="javascript:void(0)" >发布</a></div>
+				</div>
+			</div>
+		</div>
+		<% } %>
+		<div class="main">
+		<% for(var i=0;i<list.length; i++){%>
+			<div class="entry">
+				<div class="head"><img width="100%" src="/avatar/<%= list[i].avatar %>"></div>
+				<div class="content">
+					<div class="name"><%= list[i].name %></div>
+					<div class="time"><%= list[i].time %></div>
+					<div class="word"><%= list[i].content %></div>
+					<div class="zan"></div>
+				</div>
+			</div>
+		<% } %>
+		</div>
+	</div>
+	<script type="text/javascript">
+	var timer=null;
+		$('.publish textarea').stop(true,true).focus(function(){
+			$('.publish .prompt').fadeIn();
+			$('.publish .article').css('border-color','#fa7d3c');
+			if(timer){clearInterval(timer)}
+			timer=setInterval(function(){
+				var length=140-$('.publish textarea').val().length < 0 ? 0 : 140-$('.publish textarea').val().length;
+				$('.prompt span').html( length);
+			})
+		})
+		$('.publish textarea').blur(function(){
+			$('.publish .article').css('border-color','#ccc');
+			$('.publish .prompt').stop(true,true).fadeOut();
+			if(timer){clearInterval(timer)}
+		})
+		/*发布*/
+		$('.article .put').click(function(){
+			if($('.textarea').val()==0){
+				alert('不能为空！');
+				/*清空表单*/
+				$('.article textarea').val('');
+				return;
+			}
+			/*插入*/
+			$.post('/dopublish',{
+				'name':'<%= username%>',
+				'content':$('.article textarea').val()
+			},function(data){
+					if(data.state != '1'){
+						alert('发表失败！');
+						return;
+					}
+
+					var html="<div class='entry' style='display:none;;margin-left:50px;'><div class='head'><img width='100%' src='/avatar/<%=avatar%>''></div><div class='content'><div class='name'><%= username%></div><div class='time'>"+data.time+"</div><div class='word'>"+$('.article textarea').val()+"</div><div class='zan'></div></div></div>"
+
+					$('.main').prepend(html);
+					$('.main .entry:first').css('opacity','0');
+					/*动效*/
+					$('.main .entry:first').css('display','block').animate({
+						'opacity':1,
+						'margin-left':0
+					});
+					/*清空表单*/
+					$('.article textarea').val('');
+				}
+			)
+		})
+		/*看更多*/
+		/*请求多少*/
+		var a=10;
+		/*第几页*/
+		var i=0;
+		var b;
+		var fflag=true;
+		var stop=false;
+		$(document).scroll(function(){
+			if($(document).scrollTop()+$(window).height()+$('header').height()+20>$('.main').height()){
+				if(stop){return;}
+				if(!fflag){return;}
+				domore();
+			}
+			function domore(){
+				var html2='';
+				fflag=false;
+				b=++i;
+				$.post('/domore',{
+					'page':a,
+					'skip': b
+				},function(data){
+					/*如果没有数据就不发送请求*/
+					if(data == '-1'){
+						stop=true;
+						return;
+					}
+					for(var o=0;o<data.length;o++){
+						html2+="<div class='entry'><div class='head'><img width='100%' src='/avatar/"+data[o].avatar+"'></div><div class='content'><div class='name'>"+data[o].name+"</div><div class='time'>"+data[o].time+"</div><div class='word'>"+data[o].content+"</div></div></div>";
+					}
+					$('.main').append(html2);
+					fflag=true;
+				})
+			}
+		})
+	</script>
+	<footer>
+		
+	</footer>
+</body>
+</html>
